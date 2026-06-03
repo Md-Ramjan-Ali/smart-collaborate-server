@@ -1,0 +1,95 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// User Model
+model User {
+  id              String        @id @default(uuid())
+  name            String
+  email           String        @unique
+  password        String
+  role            Role          @default(TEAM_MEMBER) // ADMIN, PROJECT_MANAGER, TEAM_MEMBER
+  managedProjects Project[]     @relation("ProjectOwner")
+  memberProjects  Project[]     @relation("ProjectMembers")
+  assignedTasks   Task[]
+  activityLogs    ActivityLog[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+enum Role {
+  ADMIN
+  PROJECT_MANAGER
+  TEAM_MEMBER
+}
+
+// Project Model
+model Project {
+  id           String        @id @default(uuid())
+  title        String        @unique
+  description  String
+  status       ProjectStatus @default(NOT_STARTED) // NOT_STARTED, IN_PROGRESS, COMPLETED
+  ownerId      String
+  owner        User          @relation("ProjectOwner", fields: [ownerId], references: [id])
+  teamMembers  User[]        @relation("ProjectMembers")
+  startDate    DateTime
+  endDate      DateTime
+  tasks        Task[]
+  activityLogs ActivityLog[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+enum ProjectStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+// Task Model
+model Task {
+  id          String     @id @default(uuid())
+  title       String
+  description String?
+  priority    Priority   @default(MEDIUM) // LOW, MEDIUM, HIGH
+  status      TaskStatus @default(TO_DO) // TO_DO, IN_PROGRESS, UNDER_REVIEW, COMPLETED
+  assigneeId  String?
+  assignee    User?      @relation(fields: [assigneeId], references: [id])
+  projectId   String
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  dueDate     DateTime
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskStatus {
+  TO_DO
+  IN_PROGRESS
+  UNDER_REVIEW
+  COMPLETED
+}
+
+// Activity Log Model
+model ActivityLog {
+  id        String   @id @default(uuid())
+  message   String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
