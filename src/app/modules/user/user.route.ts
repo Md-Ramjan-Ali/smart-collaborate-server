@@ -7,6 +7,7 @@ const router = Router();
 // Auth routes
 router.post('/signup', UserController.registerUser);
 router.post('/login', UserController.loginUser);
+router.post('/logout', UserController.logoutUser);
 
 // User retrieval route (requires valid token for task assignees & team builder)
 router.get('/', auth(), UserController.getAllUsers);

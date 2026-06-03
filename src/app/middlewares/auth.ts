@@ -16,14 +16,17 @@ declare global {
 
 const auth = (...requiredRoles: Role[]) => {
   return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-    const authHeader = req.headers.authorization;
+    // Attempt to extract token from cookies or Authorization header
+    let token = req.cookies?.token;
+
+    if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
     
-    // Check if authorization header is provided
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Check if token is provided
+    if (!token) {
       throw new AppError(401, 'You are not authorized to access this resource!');
     }
-
-    const token = authHeader.split(' ')[1];
 
     // Verify JWT token
     let decoded: JwtPayload;
