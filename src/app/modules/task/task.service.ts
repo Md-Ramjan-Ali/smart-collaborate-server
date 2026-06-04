@@ -352,10 +352,6 @@ const getMyTasks = async (userId: string) => {
   const tasks = await prisma.task.findMany({
     where: {
       assigneeId: userId,
-      OR: [
-        { status: 'TO_DO' },
-        { status: 'IN_PROGRESS' },
-      ],
     },
     include: {
       project: { select: { id: true, title: true } },
@@ -368,10 +364,14 @@ const getMyTasks = async (userId: string) => {
   // Group by status
   const todo = tasks.filter((t) => t.status === 'TO_DO');
   const inProgress = tasks.filter((t) => t.status === 'IN_PROGRESS');
+  const underReview = tasks.filter((t) => t.status === 'UNDER_REVIEW');
+  const completed = tasks.filter((t) => t.status === 'COMPLETED');
 
   return {
     todo,
     inProgress,
+    underReview,
+    completed,
   };
 };
 
