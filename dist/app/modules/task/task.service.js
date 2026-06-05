@@ -60,8 +60,24 @@ const createTask = async (payload, userId, userRole) => {
     if (userRole !== client_1.Role.ADMIN && project.ownerId !== userId) {
         throw new AppError_1.default(403, 'You do not have permission to create tasks in this project!');
     }
-    // 1. Due Date Validation (Task's due date cannot exceed project's end date)
+    // 1. Title uniqueness check within the same project
+    const duplicateTask = await db_1.default.task.findFirst({
+        where: {
+            projectId: payload.projectId,
+            title: { equals: payload.title, mode: 'insensitive' },
+        },
+    });
+    if (duplicateTask) {
+        throw new AppError_1.default(400, 'This task already exists in the project.');
+    }
+    // 2. Prevent past dates as deadlines
     const taskDueDate = new Date(payload.dueDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (taskDueDate < today) {
+        throw new AppError_1.default(400, 'Please select a valid deadline.');
+    }
+    // 3. Due Date Validation (Task's due date cannot exceed project's end date)
     const projectEndDate = new Date(project.endDate);
     if (taskDueDate > projectEndDate) {
         throw new AppError_1.default(400, `Task due date cannot be later than the project end date (${project.endDate.toISOString().split('T')[0]}).`);
@@ -193,11 +209,32 @@ const updateTask = async (taskId, payload, userId, userRole) => {
         if (userRole !== client_1.Role.ADMIN && projectDetails?.ownerId !== userId) {
             throw new AppError_1.default(403, 'You do not have permission to update tasks in this project!');
         }
+        // Prevent assigning completed tasks
+        if (task.status === 'COMPLETED' && assigneeId !== undefined && assigneeId !== task.assigneeId) {
+            throw new AppError_1.default(400, 'Completed tasks cannot be reassigned.');
+        }
+        // Title uniqueness check within the same project
+        if (title && title.toLowerCase() !== task.title.toLowerCase()) {
+            const duplicateTask = await db_1.default.task.findFirst({
+                where: {
+                    projectId: task.projectId,
+                    title: { equals: title, mode: 'insensitive' },
+                },
+            });
+            if (duplicateTask) {
+                throw new AppError_1.default(400, 'This task already exists in the project.');
+            }
+        }
         // Update payload mappings
         updateData = { ...payload };
         // Due date validation
         if (dueDate) {
             const taskDueDate = new Date(dueDate);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            if (taskDueDate < today) {
+                throw new AppError_1.default(400, 'Please select a valid deadline.');
+            }
             const projectEndDate = new Date(project.endDate);
             if (taskDueDate > projectEndDate) {
                 throw new AppError_1.default(400, `Task due date cannot be later than the project end date (${project.endDate.toISOString().split('T')[0]}).`);
@@ -269,10 +306,6 @@ const getMyTasks = async (userId) => {
     const tasks = await db_1.default.task.findMany({
         where: {
             assigneeId: userId,
-            OR: [
-                { status: 'TO_DO' },
-                { status: 'IN_PROGRESS' },
-            ],
         },
         include: {
             project: { select: { id: true, title: true } },
@@ -284,10 +317,102 @@ const getMyTasks = async (userId) => {
     // Group by status
     const todo = tasks.filter((t) => t.status === 'TO_DO');
     const inProgress = tasks.filter((t) => t.status === 'IN_PROGRESS');
+    const underReview = tasks.filter((t) => t.status === 'UNDER_REVIEW');
+    const completed = tasks.filter((t) => t.status === 'COMPLETED');
     return {
         todo,
         inProgress,
+        underReview,
+        completed,
     };
+};
+/**
+ * Add a comment to a task
+ */
+const createComment = async (taskId, content, userId) => {
+    const task = await db_1.default.task.findUnique({
+        where: { id: taskId },
+        include: { project: { select: { title: true } } },
+    });
+    if (!task) {
+        throw new AppError_1.default(404, 'Task not found!');
+    }
+    const comment = await db_1.default.comment.create({
+        data: {
+            content,
+            taskId,
+            userId,
+        },
+        include: {
+            user: { select: { id: true, name: true, email: true } },
+        },
+    });
+    // Notify assignee if someone else comments
+    if (task.assigneeId && task.assigneeId !== userId) {
+        const commenter = await db_1.default.user.findUnique({ where: { id: userId }, select: { name: true } });
+        await db_1.default.notification.create({
+            data: {
+                message: `${commenter?.name || 'Someone'} commented on your assigned task '${task.title}': "${content.substring(0, 30)}..."`,
+                userId: task.assigneeId,
+            },
+        });
+    }
+    return comment;
+};
+/**
+ * Get all comments for a task
+ */
+const getComments = async (taskId) => {
+    return db_1.default.comment.findMany({
+        where: { taskId },
+        include: {
+            user: { select: { id: true, name: true, email: true } },
+        },
+        orderBy: {
+            createdAt: 'asc',
+        },
+    });
+};
+/**
+ * Add an attachment to a task
+ */
+const createAttachment = async (taskId, payload, userId) => {
+    const task = await db_1.default.task.findUnique({
+        where: { id: taskId },
+    });
+    if (!task) {
+        throw new AppError_1.default(404, 'Task not found!');
+    }
+    const attachment = await db_1.default.attachment.create({
+        data: {
+            filename: payload.filename,
+            fileUrl: payload.fileUrl,
+            taskId,
+            userId,
+        },
+        include: {
+            user: { select: { id: true, name: true, email: true } },
+        },
+    });
+    // Log activity
+    const uploader = await db_1.default.user.findUnique({ where: { id: userId }, select: { name: true } });
+    const logMessage = `${uploader?.name || 'User'} attached file '${payload.filename}' to task '${task.title}'`;
+    await createActivityLog(logMessage, userId, task.projectId);
+    return attachment;
+};
+/**
+ * Get all attachments for a task
+ */
+const getAttachments = async (taskId) => {
+    return db_1.default.attachment.findMany({
+        where: { taskId },
+        include: {
+            user: { select: { id: true, name: true, email: true } },
+        },
+        orderBy: {
+            createdAt: 'desc',
+        },
+    });
 };
 exports.TaskService = {
     createTask,
@@ -295,4 +420,8 @@ exports.TaskService = {
     updateTask,
     deleteTask,
     getMyTasks,
+    createComment,
+    getComments,
+    createAttachment,
+    getAttachments,
 };

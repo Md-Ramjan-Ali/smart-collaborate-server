@@ -24,11 +24,34 @@ const registerUser = (0, catchAsync_1.default)(async (req, res) => {
  */
 const loginUser = (0, catchAsync_1.default)(async (req, res) => {
     const result = await user_service_1.UserService.loginUser(req.body);
+    // Set the token inside cookie
+    res.cookie('token', result.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
     (0, sendResponse_1.default)(res, {
         statusCode: 200,
         success: true,
         message: 'User logged in successfully!',
         data: result,
+    });
+});
+/**
+ * Handle user logout request
+ */
+const logoutUser = (0, catchAsync_1.default)(async (req, res) => {
+    res.clearCookie('token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    });
+    (0, sendResponse_1.default)(res, {
+        statusCode: 200,
+        success: true,
+        message: 'User logged out successfully!',
+        data: null,
     });
 });
 /**
@@ -46,5 +69,6 @@ const getAllUsers = (0, catchAsync_1.default)(async (req, res) => {
 exports.UserController = {
     registerUser,
     loginUser,
+    logoutUser,
     getAllUsers,
 };

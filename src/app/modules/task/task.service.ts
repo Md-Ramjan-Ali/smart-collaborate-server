@@ -75,8 +75,26 @@ const createTask = async (
     throw new AppError(403, 'You do not have permission to create tasks in this project!');
   }
 
-  // 1. Due Date Validation (Task's due date cannot exceed project's end date)
+  // 1. Title uniqueness check within the same project
+  const duplicateTask = await prisma.task.findFirst({
+    where: {
+      projectId: payload.projectId,
+      title: { equals: payload.title, mode: 'insensitive' },
+    },
+  });
+  if (duplicateTask) {
+    throw new AppError(400, 'This task already exists in the project.');
+  }
+
+  // 2. Prevent past dates as deadlines
   const taskDueDate = new Date(payload.dueDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (taskDueDate < today) {
+    throw new AppError(400, 'Please select a valid deadline.');
+  }
+
+  // 3. Due Date Validation (Task's due date cannot exceed project's end date)
   const projectEndDate = new Date(project.endDate);
 
   if (taskDueDate > projectEndDate) {
@@ -258,12 +276,37 @@ const updateTask = async (
       throw new AppError(403, 'You do not have permission to update tasks in this project!');
     }
 
+    // Prevent assigning completed tasks
+    if (task.status === 'COMPLETED' && assigneeId !== undefined && assigneeId !== task.assigneeId) {
+      throw new AppError(400, 'Completed tasks cannot be reassigned.');
+    }
+
+    // Title uniqueness check within the same project
+    if (title && title.toLowerCase() !== task.title.toLowerCase()) {
+      const duplicateTask = await prisma.task.findFirst({
+        where: {
+          projectId: task.projectId,
+          title: { equals: title, mode: 'insensitive' },
+        },
+      });
+      if (duplicateTask) {
+        throw new AppError(400, 'This task already exists in the project.');
+      }
+    }
+
     // Update payload mappings
     updateData = { ...payload };
 
     // Due date validation
     if (dueDate) {
       const taskDueDate = new Date(dueDate);
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (taskDueDate < today) {
+        throw new AppError(400, 'Please select a valid deadline.');
+      }
+
       const projectEndDate = new Date(project.endDate);
 
       if (taskDueDate > projectEndDate) {
@@ -375,10 +418,118 @@ const getMyTasks = async (userId: string) => {
   };
 };
 
+/**
+ * Add a comment to a task
+ */
+const createComment = async (taskId: string, content: string, userId: string) => {
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    include: { project: { select: { title: true } } },
+  });
+
+  if (!task) {
+    throw new AppError(404, 'Task not found!');
+  }
+
+  const comment = await prisma.comment.create({
+    data: {
+      content,
+      taskId,
+      userId,
+    },
+    include: {
+      user: { select: { id: true, name: true, email: true } },
+    },
+  });
+
+  // Notify assignee if someone else comments
+  if (task.assigneeId && task.assigneeId !== userId) {
+    const commenter = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+    await prisma.notification.create({
+      data: {
+        message: `${commenter?.name || 'Someone'} commented on your assigned task '${task.title}': "${content.substring(0, 30)}..."`,
+        userId: task.assigneeId,
+      },
+    });
+  }
+
+  return comment;
+};
+
+/**
+ * Get all comments for a task
+ */
+const getComments = async (taskId: string) => {
+  return prisma.comment.findMany({
+    where: { taskId },
+    include: {
+      user: { select: { id: true, name: true, email: true } },
+    },
+    orderBy: {
+      createdAt: 'asc',
+    },
+  });
+};
+
+/**
+ * Add an attachment to a task
+ */
+const createAttachment = async (
+  taskId: string,
+  payload: { filename: string; fileUrl: string },
+  userId: string
+) => {
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+  });
+
+  if (!task) {
+    throw new AppError(404, 'Task not found!');
+  }
+
+  const attachment = await prisma.attachment.create({
+    data: {
+      filename: payload.filename,
+      fileUrl: payload.fileUrl,
+      taskId,
+      userId,
+    },
+    include: {
+      user: { select: { id: true, name: true, email: true } },
+    },
+  });
+
+  // Log activity
+  const uploader = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+  const logMessage = `${uploader?.name || 'User'} attached file '${payload.filename}' to task '${task.title}'`;
+  await createActivityLog(logMessage, userId, task.projectId);
+
+  return attachment;
+};
+
+/**
+ * Get all attachments for a task
+ */
+const getAttachments = async (taskId: string) => {
+  return prisma.attachment.findMany({
+    where: { taskId },
+    include: {
+      user: { select: { id: true, name: true, email: true } },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+};
+
 export const TaskService = {
   createTask,
   getAllTasks,
   updateTask,
   deleteTask,
   getMyTasks,
+  createComment,
+  getComments,
+  createAttachment,
+  getAttachments,
 };

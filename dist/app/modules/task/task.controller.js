@@ -84,10 +84,68 @@ const getMyTasks = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+/**
+ * Handle adding a comment to a task
+ */
+const createComment = (0, catchAsync_1.default)(async (req, res) => {
+    const taskId = req.params.id;
+    const userId = req.user?.id;
+    const result = await task_service_1.TaskService.createComment(taskId, req.body.content, userId);
+    (0, sendResponse_1.default)(res, {
+        statusCode: 201,
+        success: true,
+        message: 'Comment added successfully!',
+        data: result,
+    });
+});
+/**
+ * Handle fetching comments for a task
+ */
+const getComments = (0, catchAsync_1.default)(async (req, res) => {
+    const taskId = req.params.id;
+    const result = await task_service_1.TaskService.getComments(taskId);
+    (0, sendResponse_1.default)(res, {
+        statusCode: 200,
+        success: true,
+        message: 'Comments retrieved successfully!',
+        data: result,
+    });
+});
+/**
+ * Handle adding an attachment to a task
+ */
+const createAttachment = (0, catchAsync_1.default)(async (req, res) => {
+    const taskId = req.params.id;
+    const userId = req.user?.id;
+    const result = await task_service_1.TaskService.createAttachment(taskId, req.body, userId);
+    (0, sendResponse_1.default)(res, {
+        statusCode: 201,
+        success: true,
+        message: 'Attachment uploaded successfully!',
+        data: result,
+    });
+});
+/**
+ * Handle fetching attachments for a task
+ */
+const getAttachments = (0, catchAsync_1.default)(async (req, res) => {
+    const taskId = req.params.id;
+    const result = await task_service_1.TaskService.getAttachments(taskId);
+    (0, sendResponse_1.default)(res, {
+        statusCode: 200,
+        success: true,
+        message: 'Attachments retrieved successfully!',
+        data: result,
+    });
+});
 exports.TaskController = {
     createTask,
     getAllTasks,
     updateTask,
     deleteTask,
     getMyTasks,
+    createComment,
+    getComments,
+    createAttachment,
+    getAttachments,
 };
