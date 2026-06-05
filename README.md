@@ -4,6 +4,13 @@ A premium, full-stack project and task coordination dashboard that helps teams m
 
 ---
 
+## 🌐 Live Deployed Links
+
+*   **Frontend Client:** [https://smart-collaborate-frontend.vercel.app](https://smart-collaborate-frontend.vercel.app)
+*   **Backend API Server:** [https://smart-collaborate-server.vercel.app](https://smart-collaborate-server.vercel.app)
+
+---
+
 ## 🚀 Key Features
 
 ### 1. Robust Role-Based Access Control (RBAC)
