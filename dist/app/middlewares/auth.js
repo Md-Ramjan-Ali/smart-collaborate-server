@@ -9,12 +9,15 @@ const AppError_1 = __importDefault(require("../errors/AppError"));
 const catchAsync_1 = __importDefault(require("../utils/catchAsync"));
 const auth = (...requiredRoles) => {
     return (0, catchAsync_1.default)(async (req, res, next) => {
-        const authHeader = req.headers.authorization;
-        // Check if authorization header is provided
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        // Attempt to extract token from cookies or Authorization header
+        let token = req.cookies?.token;
+        if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+            token = req.headers.authorization.split(' ')[1];
+        }
+        // Check if token is provided
+        if (!token) {
             throw new AppError_1.default(401, 'You are not authorized to access this resource!');
         }
-        const token = authHeader.split(' ')[1];
         // Verify JWT token
         let decoded;
         try {
