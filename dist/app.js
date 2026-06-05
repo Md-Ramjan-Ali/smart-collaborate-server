@@ -11,8 +11,27 @@ const globalErrorHandler_1 = __importDefault(require("./app/middlewares/globalEr
 const notFound_1 = __importDefault(require("./app/middlewares/notFound"));
 const app = (0, express_1.default)();
 // Middlewares
+const allowedOrigins = [
+    'http://localhost:3000',
+    'https://smart-collaborate-frontend.vercel.app',
+];
+if (process.env.CLIENT_URL) {
+    allowedOrigins.push(process.env.CLIENT_URL.replace(/\/$/, ''));
+}
 app.use((0, cors_1.default)({
-    origin: 'http://localhost:3000',
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps, curl, postman)
+        if (!origin)
+            return callback(null, true);
+        // Check if the origin matches our allowed list or ends with .vercel.app
+        const isAllowed = allowedOrigins.includes(origin) || origin.endsWith('.vercel.app');
+        if (isAllowed) {
+            callback(null, origin);
+        }
+        else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
 }));
 app.use((0, cookie_parser_1.default)());
