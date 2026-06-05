@@ -48,7 +48,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.defineExtension = exports.NullsOrder = exports.QueryMode = exports.SortOrder = exports.ActivityLogScalarFieldEnum = exports.TaskScalarFieldEnum = exports.ProjectScalarFieldEnum = exports.UserScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.prismaVersion = exports.getExtensionContext = exports.Decimal = exports.Sql = exports.raw = exports.join = exports.empty = exports.sql = exports.PrismaClientValidationError = exports.PrismaClientInitializationError = exports.PrismaClientRustPanicError = exports.PrismaClientUnknownRequestError = exports.PrismaClientKnownRequestError = void 0;
+exports.defineExtension = exports.NullsOrder = exports.QueryMode = exports.SortOrder = exports.NotificationScalarFieldEnum = exports.AttachmentScalarFieldEnum = exports.CommentScalarFieldEnum = exports.ActivityLogScalarFieldEnum = exports.TaskScalarFieldEnum = exports.ProjectScalarFieldEnum = exports.UserScalarFieldEnum = exports.TransactionIsolationLevel = exports.ModelName = exports.AnyNull = exports.JsonNull = exports.DbNull = exports.NullTypes = exports.prismaVersion = exports.getExtensionContext = exports.Decimal = exports.Sql = exports.raw = exports.join = exports.empty = exports.sql = exports.PrismaClientValidationError = exports.PrismaClientInitializationError = exports.PrismaClientRustPanicError = exports.PrismaClientUnknownRequestError = exports.PrismaClientKnownRequestError = void 0;
 const runtime = __importStar(require("@prisma/client/runtime/client"));
 /**
  * Prisma Errors
@@ -106,7 +106,10 @@ exports.ModelName = {
     User: 'User',
     Project: 'Project',
     Task: 'Task',
-    ActivityLog: 'ActivityLog'
+    ActivityLog: 'ActivityLog',
+    Comment: 'Comment',
+    Attachment: 'Attachment',
+    Notification: 'Notification'
 };
 /**
  * Enums
@@ -154,6 +157,28 @@ exports.ActivityLogScalarFieldEnum = {
     message: 'message',
     userId: 'userId',
     projectId: 'projectId',
+    createdAt: 'createdAt'
+};
+exports.CommentScalarFieldEnum = {
+    id: 'id',
+    content: 'content',
+    taskId: 'taskId',
+    userId: 'userId',
+    createdAt: 'createdAt'
+};
+exports.AttachmentScalarFieldEnum = {
+    id: 'id',
+    filename: 'filename',
+    fileUrl: 'fileUrl',
+    taskId: 'taskId',
+    userId: 'userId',
+    createdAt: 'createdAt'
+};
+exports.NotificationScalarFieldEnum = {
+    id: 'id',
+    message: 'message',
+    userId: 'userId',
+    isRead: 'isRead',
     createdAt: 'createdAt'
 };
 exports.SortOrder = {

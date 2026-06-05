@@ -92,10 +92,76 @@ const getMyTasks = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+/**
+ * Handle adding a comment to a task
+ */
+const createComment = catchAsync(async (req: Request, res: Response) => {
+  const taskId = req.params.id as string;
+  const userId = req.user?.id as string;
+  const result = await TaskService.createComment(taskId, req.body.content, userId);
+
+  sendResponse(res, {
+    statusCode: 201,
+    success: true,
+    message: 'Comment added successfully!',
+    data: result,
+  });
+});
+
+/**
+ * Handle fetching comments for a task
+ */
+const getComments = catchAsync(async (req: Request, res: Response) => {
+  const taskId = req.params.id as string;
+  const result = await TaskService.getComments(taskId);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Comments retrieved successfully!',
+    data: result,
+  });
+});
+
+/**
+ * Handle adding an attachment to a task
+ */
+const createAttachment = catchAsync(async (req: Request, res: Response) => {
+  const taskId = req.params.id as string;
+  const userId = req.user?.id as string;
+  const result = await TaskService.createAttachment(taskId, req.body, userId);
+
+  sendResponse(res, {
+    statusCode: 201,
+    success: true,
+    message: 'Attachment uploaded successfully!',
+    data: result,
+  });
+});
+
+/**
+ * Handle fetching attachments for a task
+ */
+const getAttachments = catchAsync(async (req: Request, res: Response) => {
+  const taskId = req.params.id as string;
+  const result = await TaskService.getAttachments(taskId);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Attachments retrieved successfully!',
+    data: result,
+  });
+});
+
 export const TaskController = {
   createTask,
   getAllTasks,
   updateTask,
   deleteTask,
   getMyTasks,
+  createComment,
+  getComments,
+  createAttachment,
+  getAttachments,
 };

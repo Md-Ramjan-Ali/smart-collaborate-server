@@ -41,6 +41,17 @@ const getDashboardMeta = async (userId: string, role: Role) => {
     where: { ...taskFilter, status: 'COMPLETED' },
   });
   const pendingTasks = totalTasks - completedTasks;
+  const overdueTasks = await prisma.task.count({
+    where: {
+      ...taskFilter,
+      dueDate: {
+        lt: new Date(),
+      },
+      status: {
+        not: 'COMPLETED',
+      },
+    },
+  });
 
   // 3. Task Status Distribution
   const todoTasks = await prisma.task.count({ where: { ...taskFilter, status: 'TO_DO' } });
@@ -141,6 +152,7 @@ const getDashboardMeta = async (userId: string, role: Role) => {
         total: totalTasks,
         pending: pendingTasks,
         completed: completedTasks,
+        overdue: overdueTasks,
       },
     },
     statusDistribution,
