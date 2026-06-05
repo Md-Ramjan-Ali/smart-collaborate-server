@@ -11,6 +11,7 @@ const router = (0, express_1.Router)();
 // Auth routes
 router.post('/signup', user_controller_1.UserController.registerUser);
 router.post('/login', user_controller_1.UserController.loginUser);
+router.post('/logout', user_controller_1.UserController.logoutUser);
 // User retrieval route (requires valid token for task assignees & team builder)
 router.get('/', (0, auth_1.default)(), user_controller_1.UserController.getAllUsers);
 exports.UserRoutes = router;

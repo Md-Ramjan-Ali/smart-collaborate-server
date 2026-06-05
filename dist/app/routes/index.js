@@ -5,6 +5,7 @@ const user_route_1 = require("../modules/user/user.route");
 const project_route_1 = require("../modules/project/project.route");
 const task_route_1 = require("../modules/task/task.route");
 const dashboard_route_1 = require("../modules/dashboard/dashboard.route");
+const notification_route_1 = require("../modules/notification/notification.route");
 const router = (0, express_1.Router)();
 const moduleRoutes = [
     {
@@ -22,6 +23,10 @@ const moduleRoutes = [
     {
         path: '/dashboard',
         route: dashboard_route_1.DashboardRoutes,
+    },
+    {
+        path: '/notifications',
+        route: notification_route_1.NotificationRoutes,
     },
 ];
 // Register all modular routes under base path
