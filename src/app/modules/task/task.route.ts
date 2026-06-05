@@ -40,4 +40,28 @@ router.delete(
   TaskController.deleteTask
 );
 
+// Comments endpoints (Any logged-in user can view/create comments)
+router.post(
+  '/:id/comments',
+  auth(),
+  TaskController.createComment
+);
+router.get(
+  '/:id/comments',
+  auth(),
+  TaskController.getComments
+);
+
+// Attachments endpoints (Any logged-in user can view/create attachments)
+router.post(
+  '/:id/attachments',
+  auth(),
+  TaskController.createAttachment
+);
+router.get(
+  '/:id/attachments',
+  auth(),
+  TaskController.getAttachments
+);
+
 export const TaskRoutes = router;

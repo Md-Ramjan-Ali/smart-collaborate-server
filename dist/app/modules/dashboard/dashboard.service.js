@@ -43,6 +43,17 @@ const getDashboardMeta = async (userId, role) => {
         where: { ...taskFilter, status: 'COMPLETED' },
     });
     const pendingTasks = totalTasks - completedTasks;
+    const overdueTasks = await db_1.default.task.count({
+        where: {
+            ...taskFilter,
+            dueDate: {
+                lt: new Date(),
+            },
+            status: {
+                not: 'COMPLETED',
+            },
+        },
+    });
     // 3. Task Status Distribution
     const todoTasks = await db_1.default.task.count({ where: { ...taskFilter, status: 'TO_DO' } });
     const inProgressTasks = await db_1.default.task.count({ where: { ...taskFilter, status: 'IN_PROGRESS' } });
@@ -131,6 +142,7 @@ const getDashboardMeta = async (userId, role) => {
                 total: totalTasks,
                 pending: pendingTasks,
                 completed: completedTasks,
+                overdue: overdueTasks,
             },
         },
         statusDistribution,
